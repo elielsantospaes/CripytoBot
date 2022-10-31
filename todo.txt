@@ -1,0 +1,3 @@
+Documentar os metoos da classe get_cripytos_data
+
+
