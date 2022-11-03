@@ -6,10 +6,11 @@ from datetime import datetime
 
 class GetCripytosData():
 
+    
     def __init__( self, pair, api_interval ):
         self.pair = pair
         self.api_interval = api_interval
-
+        
 
     def get_candles(self, pair, api_interval ):  
         """
@@ -18,6 +19,7 @@ class GetCripytosData():
         """
         now = datetime.now()
         try:
+
             response = requests.get( "https://api.binance.com/api/v3/klines?symbol=" + pair + "&interval=" + api_interval )
 
             if response.status_code == 200:
@@ -36,12 +38,13 @@ class GetCripytosData():
 
 
     def generate_cripytos_data_list(self, cripytos_data, pair, api_interval ):
-
+        
         for data in cripytos_data:
             data.insert( 0, str( datetime.now() ) )
             data.insert( 1, pair )
             data.insert( 2, api_interval )
-                    
+            # data.insert( 3, registry )
+                                
         return cripytos_data
 
     def list_to_cosmos(self, cripytos_data ):
@@ -52,6 +55,7 @@ class GetCripytosData():
                 "datetime":data[ 0 ],
                 "pair":data[ 1 ],
                 "interval":data[ 2 ],
+                "registry":"",
                 "Open_time":data[ 3 ],
                 "Open":data[ 4 ],
                 "High":data[ 5 ],

@@ -55,7 +55,7 @@ async def populate_container_items(container_obj, items_to_create):
     # <create_item>
     for item in items_to_create:
         inserted_item = await container_obj.create_item( body = item )
-        print("Inserted item for family. Item Id: %s" %( inserted_item[ 'id' ] ) )
+        print("Inserted in cripytodatabase. Item Id: %s" %( inserted_item[ 'id' ] ) )
     # </create_item>
 # </method_populate_container_items>
 
@@ -99,11 +99,11 @@ async def run_sample( to_save ):
             # create a container
             container_obj = await get_or_create_container(database_obj, container_name)
             # generate some family items to test create, read, delete operations
-            family_items_to_create = [to_save]
+            family_items_to_create = to_save
             # populate the family items in container
             await populate_container_items( container_obj, family_items_to_create )  
             # read the just populated items using their id and partition key
-            await read_items( container_obj, family_items_to_create )
+            # await read_items( container_obj, family_items_to_create )
             # Query these items using the SQL query syntax. 
             # Specifying the partition key value in the query allows Cosmos DB to retrieve data only from the relevant partitions, which improves performance
             # query = "SELECT * FROM c WHERE c.lastName IN ('Wakefield', 'Andersen')"
@@ -111,7 +111,8 @@ async def run_sample( to_save ):
         except exceptions.CosmosHttpResponseError as e:
             print('\nrun_sample has caught an error. {0}'.format(e.message))
         finally:
-            print("\nQuickstart complete")
+            print( f' salvo com sucesso.' )
+            
 # </run_sample>
 
 def run_that( to_save ): 

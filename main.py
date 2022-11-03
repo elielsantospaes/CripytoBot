@@ -19,6 +19,7 @@ dict_time = {
                 'start_time_1w':datetime.now(),
                 'time_now':datetime.now()
              }
+dict_cripyto = {}
 
 def list_to_csv(candles_list, pair, interval):
     new_line = ''
@@ -65,26 +66,36 @@ def get_candles( pair, api_interval ):
     except ex:
         print( 'Error de conexao com o servidor: {}'.format( ex.message) )
         
-usdt_pairs = [ 'LTCUSDT' ]
-            #   'BTCUSDT',
-            #   'XMRUSDT',
-            #   'MANAUSDT',
-            #   'ETHUSDT',
-            #   'XRPUSDT',
-            #   'DOGEUSDT',
-            #   'ETCUSDT',
-            #   'AXSUSDT']
+usdt_pairs = [ 'LTCUSDT',
+              'BTCUSDT',
+              'XMRUSDT',
+              'MANAUSDT',
+              'ETHUSDT',
+              'XRPUSDT',
+              'DOGEUSDT',
+              'ETCUSDT',
+              'AXSUSDT']
 # intervals = { '1m': 60, '2h': 7200, '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
 intervals = { '1m': 5, '2h': 10, '1d': 15, '1w': 20 }
 
 if __name__ == '__main__':
-    
-    data = GetCripytosData( 'LTCUSDT', '1m' )
-    cripytos_data = data.get_candles( data.pair, data.api_interval )
-    cripytos_data = data.generate_cripytos_data_list( cripytos_data, data.pair, data.api_interval )
-    to_save = data.list_to_cosmos( cripytos_data )[0]
+    print( len( dict_cripyto.keys() ) )
 
-    cosmos_save.run_that( to_save )
+    for pair in usdt_pairs:   
+        print( pair )
+        if pair in dict_cripyto.keys():
+            dict_cripyto[ pair ] += 1
+        else:
+            dict_cripyto[ pair ] = 0
+
+        print( dict_cripyto.keys() , dict_cripyto[ pair ] )
+    
+        data = GetCripytosData( pair, '1m' )
+        cripytos_data = data.get_candles( data.pair, data.api_interval )
+        cripytos_data = data.generate_cripytos_data_list( cripytos_data, data.pair, data.api_interval ) 
+        to_save = data.list_to_cosmos( cripytos_data )[:5]
+        print( f'{len( cripytos_data )} dados do par {pair}' )
+        cosmos_save.run_that( to_save )
     
     # cosmos_get_started.run_that()
 
