@@ -99,9 +99,9 @@ async def run_sample( to_save ):
             # create a container
             container_obj = await get_or_create_container(database_obj, container_name)
             # generate some family items to test create, read, delete operations
-            family_items_to_create = to_save
-            # populate the family items in container
-            await populate_container_items( container_obj, family_items_to_create )  
+            
+            print( 'Populating the cripyto items in container' )
+            await populate_container_items( container_obj, to_save )  
             # read the just populated items using their id and partition key
             # await read_items( container_obj, family_items_to_create )
             # Query these items using the SQL query syntax. 
@@ -110,8 +110,7 @@ async def run_sample( to_save ):
             # await query_items(container_obj, query)                 
         except exceptions.CosmosHttpResponseError as e:
             print('\nrun_sample has caught an error. {0}'.format(e.message))
-        finally:
-            print( f' salvo com sucesso.' )
+        
             
 # </run_sample>
 

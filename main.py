@@ -63,9 +63,28 @@ def get_candles( pair, api_interval ):
             print( 'Erro na requisicao. Status code {}'.format( response.status_code ) )
             return None, response.status_code
 
-    except ex:
+    except Exception as ex:
         print( 'Error de conexao com o servidor: {}'.format( ex.message) )
-        
+
+def save_to_cosmos( to_save ):
+    to_cosmos = []
+    if len( to_save ) > 0:
+        if len( to_save ) >= 10:
+            for n in range( 10 ):
+                to_cosmos.append( to_save.pop( 0 ) )
+        else:
+            to_cosmos.append( to_save.pop( 0 ) )
+    else:
+        print( 'No data to save!' )
+
+    try:
+        cosmos_save.run_that( to_cosmos )
+        return to_save
+    except ConnectionError as error:
+        print( f'Erro de conexao: {error}' )
+    
+
+
 usdt_pairs = [ 'LTCUSDT',
               'BTCUSDT',
               'XMRUSDT',
@@ -76,38 +95,29 @@ usdt_pairs = [ 'LTCUSDT',
               'ETCUSDT',
               'AXSUSDT']
 # intervals = { '1m': 60, '2h': 7200, '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
-intervals = { '1m': 5, '2h': 10, '1d': 15, '1w': 20 }
+intervals = { '1m': 60, '2h': 120 }#, '1d': 15, '1w': 20 }
+dict_cripyto = {}
 
 if __name__ == '__main__':
-    print( len( dict_cripyto.keys() ) )
+  
+    to_save = []
+    while True:
+        
+        for api_interval in intervals.keys():
+            interval = intervals[ api_interval ]
+            if ( datetime.now() - dict_time[ 'start_time_' + api_interval ] ).seconds >= interval:
+                dict_time[ 'start_time_' + api_interval ] = datetime.now()
+                for pair in usdt_pairs:   
+                    print( f'Getting data for {pair} evrey {interval} seconds' )
+                                       
+                    data = GetCripytosData( pair, api_interval )
+                    cripytos_data = data.get_candles( data.pair, data.api_interval )
+                    cripytos_data, dict_cripyto = data.upadate_cripytos_data_list( cripytos_data, data.pair, data.api_interval, dict_cripyto ) 
+                    to_save.extend( data.list_to_cosmos( cripytos_data )[:5] )
+                    print( len( to_save ))
 
-    for pair in usdt_pairs:   
-        print( pair )
-        if pair in dict_cripyto.keys():
-            dict_cripyto[ pair ] += 1
-        else:
-            dict_cripyto[ pair ] = 0
+                    
+            else:
+                to_save.extend( save_to_cosmos( to_save ) )
 
-        print( dict_cripyto.keys() , dict_cripyto[ pair ] )
-    
-        data = GetCripytosData( pair, '1m' )
-        cripytos_data = data.get_candles( data.pair, data.api_interval )
-        cripytos_data = data.generate_cripytos_data_list( cripytos_data, data.pair, data.api_interval ) 
-        to_save = data.list_to_cosmos( cripytos_data )[:5]
-        print( f'{len( cripytos_data )} dados do par {pair}' )
-        cosmos_save.run_that( to_save )
-    
-    # cosmos_get_started.run_that()
-
-# while True:
-#     for api_interval in intervals.keys():
-#         interval = intervals[ api_interval ]
-#         if ( datetime.now() - dict_time[ 'start_time_' + api_interval ] ).seconds >= interval:
-#             dict_time[ 'start_time_' + api_interval ] = datetime.now()
-#             for pair in usdt_pairs:
-#                 print( 'Getting data for {} every {} s'.format( pair, interval ) )
-#                 candles, code = get_candles( pair, api_interval )
-#                 if candles != None: 
-#                     list_to_csv( candles, pair, api_interval )
-
-#     time.sleep( 30 )
+        
