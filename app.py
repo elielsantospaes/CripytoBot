@@ -1,8 +1,7 @@
 # Importing libaries to request data from a API
+import time
+
 from datetime import date, datetime
-import requests
-import os
-import asyncio
 from flask import Flask
 from flask import  render_template
 from datetime import datetime
@@ -37,9 +36,20 @@ usdt_pairs = [ 'BTCUSDT',  'ETHUSDT',  'XMRUSDT',  'XRPUSDT',   'BUSDUSDT',
 #                          'SNXUSDT',  'BTTCUSDT', 'IOTAUSDT', 'XECUSDT',   'FMTUSDT',]
 
 
-# intervals = { '1m': 60, '2h': 7200, '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
-intervals = { '1m': 60 }#, '2h': 120 } #'1d': 60, '1w': 80 }
-dict_cripyto = {}
+times = { '1m': 60, '2h': 7200, '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
+intervals = { '1m': 60, '2h': 7200, '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
+
+dict_cripyto = { 'BTCUSDT1m':1,  'ETHUSDT1m':1,  'XMRUSDT1m':1,  'XRPUSDT1m':1,   'BUSDUSDT1m':1,
+                 'DOGEUSDT1m':1, 'LTCUSDT1m':1,  'ETCUSDT1m':1,  'ZECUSDT1m':1,   'MANAUSDT1m':1,
+                 'BTCUSDT2h':1,  'ETHUSDT2h':1,  'XMRUSDT2h':1,  'XRPUSDT2h':1,   'BUSDUSDT2h':1,
+                 'DOGEUSDT2h':1, 'LTCUSDT2h':1,  'ETCUSDT2h':1,  'ZECUSDT2h':1,   'MANAUSDT2h':1,
+                 'BTCUSDT1d':1,  'ETHUSDT1d':1,  'XMRUSDT1d':1,  'XRPUSDT1d':1,   'BUSDUSDT1d':1,
+                 'DOGEUSDT1d':1, 'LTCUSDT1d':1,  'ETCUSDT1d':1,  'ZECUSDT1d':1,   'MANAUSDT1d':1,
+                 'BTCUSDT1w':1,  'ETHUSDT1w':1,  'XMRUSDT1w':1,  'XRPUSDT1w':1,   'BUSDUSDT1w':1,
+                 'DOGEUSDT1w':1, 'LTCUSDT1w':1,  'ETCUSDT1w':1,  'ZECUSDT1w':1,   'MANAUSDT1w':1
+                }
+
+
 
 
 def save_to_cosmos( to_save ):
@@ -47,14 +57,14 @@ def save_to_cosmos( to_save ):
     if len( to_save ) > 0:
         if len( to_save ) >= 10:
             for n in range( 10 ):
-                to_cosmos.append( to_save.pop( 0 ) )
+                to_cosmos.append( to_save.pop( 0 ) ) 
         else:
             to_cosmos.append( to_save.pop( 0 ) )
     else:
         print( 'No data to save!' )
 
     try:
-        print( f'len to_save depois = {len( to_save)}' )
+        print( f'len to_save depois = { len( to_save)}' )
         CosmosSave.run_that( to_cosmos )
         return to_save
     except ConnectionError as error:
@@ -72,39 +82,44 @@ def get_cripyto_data( dict_cripyto ):
         
     while True:
         
-        for api_interval in intervals.keys():
-            interval = intervals[ api_interval ]
-            if ( datetime.now() - dict_time[ 'start_time_' + api_interval ] ).seconds >= interval:
-                dict_time[ 'start_time_' + api_interval ] = datetime.now()
-                for pair in usdt_pairs:   
-                    print( f'Getting data for {pair} evrey {interval} seconds' )
-                                       
-                    data = GetCripytosData( pair, api_interval )
-                    cripytos_data = data.get_candles( data.pair, data.api_interval )
-                    lista_to_cosmos, dict_cripyto = data.list_to_cosmos( cripytos_data, dict_cripyto )
-                    to_save.extend( lista_to_cosmos )
-                    print( f'len to_save antes = {len( to_save ) }' )
-        
-            else:
-                to_save = save_to_cosmos( to_save )
-                render_page( to_save )
+        if GetCripytosData.is_on_line():
 
-# async def query():
-#     async with cosmos_client( CosmosSave.endpoint, credential = CosmosSave.key ) as client:
-#     # </create_cosmos_client>
-#         try:
-#             # create a database
-#             database_obj = await CosmosSave.get_or_create_db( client, CosmosSave.database_name )
-#             # create a container
-#             container_obj = await CosmosSave.get_or_create_container( database_obj, CosmosSave.container_name)
-           
-#             query = "SELECT * FROM c WHERE c.pair = 'BTCUSDT' AND c.interval = '1m'"
-#             response = await CosmosSave.query_items(container_obj, query)
-#             print( type( response ) )
-#             return response                
-#         except exceptions.CosmosHttpResponseError as e:
-#             print('\nrun_sample has caught an error. {0}'.format(e.message))
+            for api_interval in intervals.keys():                   
 
+                if intervals[ api_interval ] == None:
+                    for pair in usdt_pairs:
+                        data = GetCripytosData( pair, api_interval )
+                        print( f'Getting data for {data.pair} evrey {data.api_interval} seconds' )
+                        cripytos_data = data.get_candles( data.pair, data.api_interval )
+                        lista_to_cosmos, dict_cripyto =  data.list_to_cosmos( cripytos_data, dict_cripyto, to_save )
+                        to_save.extend( lista_to_cosmos )
+                        
+                    intervals[ api_interval ] = times[ api_interval ]
+
+                else: 
+                    interval = intervals[ api_interval ]
+                    if ( datetime.now() - dict_time[ 'start_time_' + api_interval ] ).seconds >= interval:
+
+                        for pair in usdt_pairs:
+                            dict_time[ 'start_time_' + api_interval ] = datetime.now()
+
+                            print( f'Getting data for {pair} evrey {interval} seconds' )
+
+                            data = GetCripytosData( pair, api_interval )
+                            cripytos_data = data.get_candles( data.pair, data.api_interval )
+                            lista_to_cosmos, dict_cripyto =  data.list_to_cosmos( cripytos_data, dict_cripyto, to_save )
+                            to_save.extend( lista_to_cosmos )
+                            print( f'len to_save antes = { len( to_save ) }' )
+                
+                    else:
+                        to_save = save_to_cosmos( to_save )
+                        render_page( to_save )
+        else:
+
+            print( 'No Internet Connection' )
+            print( 'Tring to reconnect in 10 seconds' )
+            time.sleep( 10 )
+            
 
 app = Flask( __name__ )
 
@@ -112,10 +127,10 @@ app = Flask( __name__ )
 def app_run():
     get_cripyto_data( dict_cripyto )
 
-
-
             
 if __name__ == '__main__':
     app.run()
+
+   
     
                     
