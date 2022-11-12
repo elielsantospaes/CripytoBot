@@ -19,11 +19,11 @@ class CosmosSave():
         try:
             database_obj = client.get_database_client( database_name )
             await database_obj.read()
-            return database_obj
+            return database_obj, 'db exists'
             
         except exceptions.CosmosResourceNotFoundError:
             print( "Creating database" )
-            return await client.create_database( database_name )
+            return await client.create_database( database_name ), 'db not exists'
 
         
     # Create a container
@@ -77,7 +77,24 @@ class CosmosSave():
         return items
 
 
-    # Run_sample
+    @classmethod
+    async def get_or_create_db_and_container( cls ):
+        # <create_cosmos_client>
+        async with cosmos_client( CosmosSave.endpoint, credential = CosmosSave.key ) as client:
+        # </create_cosmos_client>
+            try:
+                # create a database
+                database_obj, exists = await CosmosSave.get_or_create_db( client, CosmosSave.database_name )
+                # create a container
+                container_obj = await CosmosSave.get_or_create_container( database_obj, CosmosSave.container_name)
+                # generate some family items to test create, read, delete operations
+                return exists
+                                                 
+            except exceptions.CosmosHttpResponseError as e:
+                print('\nrun_sample has caught an error. {0}'.format(e.message))
+                
+
+    # Save data
     @classmethod
     async def save_data( cls, to_save ):
         # <create_cosmos_client>

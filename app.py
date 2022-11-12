@@ -1,5 +1,6 @@
 # Importing libaries to request data from a API
 import time
+import asyncio
 
 from datetime import date, datetime
 from flask import Flask
@@ -12,14 +13,12 @@ from azure.cosmos.aio import CosmosClient as cosmos_client
 from azure.cosmos import PartitionKey, exceptions
 
 # Global variables
-dict_time = {
-                'start_time_1m':datetime.now(),
-                'start_time_2h':datetime.now(),
-                'start_time_1d':datetime.now(),
-                'start_time_1w':datetime.now(),
-                'time_now':datetime.now()
-             }
-
+# dict_time = {
+#                 'start_time_1m':datetime.now(),
+#                 'start_time_2h':datetime.now(),
+#                 'start_time_1d':datetime.now(),
+#                 'start_time_1w':datetime.now(),
+#             }
 
 usdt_pairs = [ 'BTCUSDT',  'ETHUSDT',  'XMRUSDT',  'XRPUSDT',   'BUSDUSDT',
                'DOGEUSDT', 'LTCUSDT',  'ETCUSDT',  'ZECUSDT',   'MANAUSDT' ]
@@ -37,20 +36,6 @@ usdt_pairs = [ 'BTCUSDT',  'ETHUSDT',  'XMRUSDT',  'XRPUSDT',   'BUSDUSDT',
 
 
 times = { '1m': 60, '2h': 7200, '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
-intervals = { '1m': 60, '2h': 7200, '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
-
-dict_cripyto = { 'BTCUSDT1m':1,  'ETHUSDT1m':1,  'XMRUSDT1m':1,  'XRPUSDT1m':1,   'BUSDUSDT1m':1,
-                 'DOGEUSDT1m':1, 'LTCUSDT1m':1,  'ETCUSDT1m':1,  'ZECUSDT1m':1,   'MANAUSDT1m':1,
-                 'BTCUSDT2h':1,  'ETHUSDT2h':1,  'XMRUSDT2h':1,  'XRPUSDT2h':1,   'BUSDUSDT2h':1,
-                 'DOGEUSDT2h':1, 'LTCUSDT2h':1,  'ETCUSDT2h':1,  'ZECUSDT2h':1,   'MANAUSDT2h':1,
-                 'BTCUSDT1d':1,  'ETHUSDT1d':1,  'XMRUSDT1d':1,  'XRPUSDT1d':1,   'BUSDUSDT1d':1,
-                 'DOGEUSDT1d':1, 'LTCUSDT1d':1,  'ETCUSDT1d':1,  'ZECUSDT1d':1,   'MANAUSDT1d':1,
-                 'BTCUSDT1w':1,  'ETHUSDT1w':1,  'XMRUSDT1w':1,  'XRPUSDT1w':1,   'BUSDUSDT1w':1,
-                 'DOGEUSDT1w':1, 'LTCUSDT1w':1,  'ETCUSDT1w':1,  'ZECUSDT1w':1,   'MANAUSDT1w':1
-                }
-
-
-
 
 def save_to_cosmos( to_save ):
     to_cosmos = []
@@ -76,14 +61,46 @@ def render_page( to_save ):
                            time = f'len to_save antes = {len( to_save )}'
                             )
 
-def get_cripyto_data( dict_cripyto ):
 
+
+def get_cripyto_data( usdt_pairs ):
+
+    dict_cripyto = {}
+    dict_time = {}
     to_save = []
+
+    # Create or get the Databse and Container
+    db_exists = asyncio.run( CosmosSave.get_or_create_db_and_container() )
+    print( db_exists )
+
+    if db_exists == 'db exists':
+        print( 'Entrou aqui db exists')
+        dict_time =  GetCripytosData.get_time( usdt_pairs )
+        intervals = { '1m': 60, '2h': 7200, '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
+
+        for interval in intervals.keys():
+            for pair in usdt_pairs: 
+                dict_cripyto[ pair + interval ] = 0
+                
+                # { 'BTCUSDT1m':1,  'ETHUSDT1m':1,  'XMRUSDT1m':1,  'XRPUSDT1m':1,   'BUSDUSDT1m':1,
+                #          'DOGEUSDT1m':1, 'LTCUSDT1m':1,  'ETCUSDT1m':1,  'ZECUSDT1m':1,   'MANAUSDT1m':1,
+                #          'BTCUSDT2h':1,  'ETHUSDT2h':1,  'XMRUSDT2h':1,  'XRPUSDT2h':1,   'BUSDUSDT2h':1,
+                #          'DOGEUSDT2h':1, 'LTCUSDT2h':1,  'ETCUSDT2h':1,  'ZECUSDT2h':1,   'MANAUSDT2h':1,
+                #          'BTCUSDT1d':1,  'ETHUSDT1d':1,  'XMRUSDT1d':1,  'XRPUSDT1d':1,   'BUSDUSDT1d':1,
+                #          'DOGEUSDT1d':1, 'LTCUSDT1d':1,  'ETCUSDT1d':1,  'ZECUSDT1d':1,   'MANAUSDT1d':1,
+                #          'BTCUSDT1w':1,  'ETHUSDT1w':1,  'XMRUSDT1w':1,  'XRPUSDT1w':1,   'BUSDUSDT1w':1,
+                #          'DOGEUSDT1w':1, 'LTCUSDT1w':1,  'ETCUSDT1w':1,  'ZECUSDT1w':1,   'MANAUSDT1w':1
+                # }
+
+    
+    else:
+        intervals = { '1m': None, '2h': None, '1d': None, '1w': None }
+        dict_time = {}   
         
     while True:
         
         if GetCripytosData.is_on_line():
-
+            
             for api_interval in intervals.keys():                   
 
                 if intervals[ api_interval ] == None:
@@ -123,13 +140,14 @@ def get_cripyto_data( dict_cripyto ):
 
 app = Flask( __name__ )
 
-@app.route( '/' )
-def app_run():
-    get_cripyto_data( dict_cripyto )
+# @app.route( '/' )
+# def app_run():
+#     get_cripyto_data( dict_cripyto, dict_time )
 
             
 if __name__ == '__main__':
-    app.run()
+    get_cripyto_data( usdt_pairs )
+    # app.run()
 
    
     

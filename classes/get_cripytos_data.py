@@ -141,6 +141,27 @@ class GetCripytosData():
 
             except exceptions.CosmosHttpResponseError as e:
                 print('\nrun_sample has caught an error. {0}'.format(e.message))
+
+
+    @classmethod
+    def get_time( cls, usdt_pairs ):
+
+        intervals = [ '1m', '2h', '1d', '1w' ]
+        dict_t = {}
+        try:
+            for interval in intervals:
+                # for pair in usdt_pairs:
+                query_text = f"SELECT * FROM c WHERE c.pair = 'BTCUSDT' AND c.interval = '{interval}'"
+                items = asyncio.run( GetCripytosData.query_registry( query_text ) )
+                if len( items ) > 0:
+                    print( f'{items[ len( items ) - 1 ][ "registry" ]} found fot {pair} and {interval}' )
+                    dict_t[ 'start_time_' + interval ] = datetime.strptime( items[ len( items ) - 1 ][ "datetime" ], '%Y-%m-%d %H:%M:%S.%f' )
+            
+            print( f'len dict_t = {len( dict_t )}' )
+            return dict_t
+
+        except Exception as e:
+            print('\nrun_sample has caught an error. {0}'.format(e))
     
     @classmethod
     def is_on_line( cls ):
