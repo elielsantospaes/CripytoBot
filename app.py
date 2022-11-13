@@ -370,7 +370,7 @@ def get_data():
 
 
 if __name__ == '__main__':
-    app.run() 
+    app.run( debug = True, port = 5000) 
     # get_cripyto_data( usdt_pairs, dict_time, times, intervals )
    
 
