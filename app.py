@@ -2,6 +2,7 @@
 import json
 import time
 
+from flask import Flask
 from datetime import datetime
 from classes.cosmos_save import CosmosSave
 from classes.get_cripytos_data import GetCripytosData
@@ -70,7 +71,6 @@ def save_to_cosmos( to_save ):
     except ConnectionError as error:
         print( f'Erro de conexao: {error}' )
 
-
 def get_cripyto_data( usdt_pairs, dict_time, times, intervals ):
 
     to_save = []
@@ -123,11 +123,23 @@ def get_cripyto_data( usdt_pairs, dict_time, times, intervals ):
             print( 'No Internet Connection' )
             print( 'Tring to reconnect in 10 seconds' )
             time.sleep( 10 )
+
+
+app = Flask( __name__ )
+
+@app.route( '/' )
+def get_data():
+    get_cripyto_data( usdt_pairs, dict_time, times, intervals )
             
+
+
+
+
 
            
 if __name__ == '__main__':
-    get_cripyto_data( usdt_pairs, dict_time, times, intervals )
+    app.run() 
+    # get_cripyto_data( usdt_pairs, dict_time, times, intervals )
    
 
    
