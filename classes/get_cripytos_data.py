@@ -1,12 +1,6 @@
 import requests
 from datetime import datetime
 
-import asyncio
-
-from azure.cosmos.aio import CosmosClient as cosmos_client
-from azure.cosmos import PartitionKey, exceptions
-from classes.cosmos_save import CosmosSave
-
 # response in the each candle:
 # list of OHLCV values (Open time, Open, High, Low, Close, Volume, Close time, Quote asset volume, Number of trades, Taker buy base asset volume, Taker buy quote asset volume, Ignore)
 
@@ -41,22 +35,13 @@ class GetCripytosData():
             
 
             
-    def list_to_cosmos(self, cripytos_data, dict_cripyto, to_save, query_text = None ):
+    def list_to_cosmos(self, cripytos_data, dict_cripyto ):
         
         list_to_save = []
-        
-        print( f'Saving data for {self.pair} {self.api_interval}' )
-        query_text = f"SELECT * FROM c WHERE c.pair = '{self.pair}' AND c.interval = '{self.api_interval}'"
-        items = asyncio.run( GetCripytosData.query_registry( query_text ) )   
-
-        if len( items ) > 0:
-            
-            print(  f'{ len( items ) } registry found for {self.pair} {self.api_interval}\n' )
-            dict_cripyto[ self.pair + self.api_interval ] = items[ len( items ) - 1 ][ "registry" ] + 1
-
-          
+                         
         if self.pair + self.api_interval in dict_cripyto.keys():
-            
+
+            dict_cripyto[ self.pair + self.api_interval ] += 1
             data = cripytos_data[ len( cripytos_data ) - 1 ]
             data.insert( 0, str( datetime.now() ) )
             data.insert( 1, self.pair )
@@ -125,43 +110,6 @@ class GetCripytosData():
 
         return list_to_save, dict_cripyto
 
-    @classmethod
-    async def query_registry( cls, query ):
-        # create_cosmos_client
-        async with cosmos_client( CosmosSave.endpoint, credential = CosmosSave.key ) as client:
-        
-            try:
-                # create a database
-                database_obj = await CosmosSave.get_or_create_db( client, CosmosSave.database_name )
-                # create a container
-                container_obj = await CosmosSave.get_or_create_container( database_obj, CosmosSave.container_name)
-                          
-                response = await CosmosSave.query_items( container_obj, query )
-                return response 
-
-            except exceptions.CosmosHttpResponseError as e:
-                print('\nrun_sample has caught an error. {0}'.format(e.message))
-
-
-    @classmethod
-    def get_time( cls, usdt_pairs ):
-
-        intervals = [ '1m', '2h', '1d', '1w' ]
-        dict_t = {}
-        try:
-            for interval in intervals:
-                # for pair in usdt_pairs:
-                query_text = f"SELECT * FROM c WHERE c.pair = 'BTCUSDT' AND c.interval = '{interval}'"
-                items = asyncio.run( GetCripytosData.query_registry( query_text ) )
-                if len( items ) > 0:
-                    print( f'{items[ len( items ) - 1 ][ "registry" ]} found fot {pair} and {interval}' )
-                    dict_t[ 'start_time_' + interval ] = datetime.strptime( items[ len( items ) - 1 ][ "datetime" ], '%Y-%m-%d %H:%M:%S.%f' )
-            
-            print( f'len dict_t = {len( dict_t )}' )
-            return dict_t
-
-        except Exception as e:
-            print('\nrun_sample has caught an error. {0}'.format(e))
     
     @classmethod
     def is_on_line( cls ):
