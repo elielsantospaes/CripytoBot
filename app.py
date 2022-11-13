@@ -136,9 +136,7 @@ def get_data():
 
 
 
-           
-if __name__ == '__main__':
-    app.run() 
+app.run() 
     # get_cripyto_data( usdt_pairs, dict_time, times, intervals )
    
 
