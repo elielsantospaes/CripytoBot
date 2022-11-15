@@ -8,8 +8,6 @@ from flask import Flask
 from datetime import datetime
 from azure.cosmos.aio import CosmosClient as cosmos_client
 from azure.cosmos import PartitionKey, exceptions
-# from classes.cosmos_save import CosmosSave
-# from classes.get_cripytos_data import GetCripytosData
 
 # COSMOS 
 class CosmosSave():
@@ -32,7 +30,7 @@ class CosmosSave():
             
         except exceptions.CosmosResourceNotFoundError:
             print( "Creating database" )
-            return await client.create_database( database_name ), 
+            return await client.create_database( database_name )
         
     # Create a container
     # Using a good partition key improves the performance of database operations.
@@ -250,34 +248,39 @@ dict_time = {
                 'start_time_1w':datetime.now(),
             }
 
-times = { '1m': 10, '2h': 40 , '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
+times = { '1m': 60, '2h': 7200 , '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
+# times = { '1m': 60, '2h': 90 , '1d': 120, '1w': 150 }
 intervals = { '1m': None, '2h': None, '1d': None, '1w': None }
 
-usdt_pairs = [ 'BTCUSDT',  'ETHUSDT']#,  'XMRUSDT',  'XRPUSDT',   'BUSDUSDT',
-            #    'DOGEUSDT', 'LTCUSDT',  'ETCUSDT',  'ZECUSDT',   'MANAUSDT' ]
+usdt_pairs = [ 'BTCUSDT',  'ETHUSDT',  'XMRUSDT',  'XRPUSDT',   'BUSDUSDT',
+               'DOGEUSDT', 'LTCUSDT',  'ETCUSDT',  'ZECUSDT',   'MANAUSDT' ]
 
 
-def save_to_file( to_save, mode ):
+def save_to_file( to_save, pair, interval, mode ):
 
-    with open( 'to_save.txt', mode ) as file:
+    with open( 'data/' +  str( pair ) + str ( interval ) + '.txt', mode ) as file:
         
         for line in to_save:
             file.write( str( line ).replace( "'", '"' ) + '\n' )
         
         print( f'{len( to_save )} inserted in the to_save.txt')
 
-def overwrite_save_to_file( to_save ):
-    save_to_file( to_save, 'w' )
+def overwrite_save_to_file( to_save, pair, interval ):
+    save_to_file( to_save , pair, interval , 'w' )
 
-def list_to_save():
+def list_to_save( pair, interval ):
+    print( ' lendo arquivo para gravacao: data/' + pair + interval + '.txt' )
 
-    with open( 'to_save.txt', 'r' ) as file:
-        save_list = file.read()
-        return save_list.split( '\n' )
+    try:
+        with open( 'data/' + pair + interval + '.txt', 'r' ) as file:
+            save_list = file.read()
+            return save_list.split( '\n' )
 
+    except Exception:
+        raise
 
         
-def save_to_cosmos( to_save ):
+def save_to_cosmos( to_save, pair, interval ):
 
     to_cosmos = []
 
@@ -300,7 +303,7 @@ def save_to_cosmos( to_save ):
     try:
         print( f'len to_save after save in comos = { len( to_save ) }' )
         CosmosSave.run_that( to_cosmos )
-        overwrite_save_to_file( to_save )
+        overwrite_save_to_file( to_save, pair, interval )
 
 
     except ConnectionError as error:
@@ -321,12 +324,13 @@ def get_cripyto_data( usdt_pairs, dict_time, times, intervals ):
                     for pair in usdt_pairs:
                         data = GetCripytosData( pair, api_interval )
                         print( f'Getting data for {data.pair} evrey {data.api_interval} seconds' )
-                        cripytos_data = data.get_candles( data.pair, data.api_interval )[0:5]
+                        cripytos_data = data.get_candles( data.pair, data.api_interval )
                         lista_to_cosmos, dict_cripyto =  data.list_to_cosmos( cripytos_data, dict_cripyto )
                         to_save.extend( lista_to_cosmos )
 
-                    save_to_file( to_save, 'a' )
-                    to_save.clear()    
+                        save_to_file( to_save, data.pair, data.api_interval, 'a' )
+                        to_save.clear()    
+
                     intervals[ api_interval ] = times[ api_interval ]
 
                 else: 
@@ -340,18 +344,20 @@ def get_cripyto_data( usdt_pairs, dict_time, times, intervals ):
                             print( f'Getting data for {pair} evrey {interval} seconds' )
 
                             data = GetCripytosData( pair, api_interval )
-                            cripytos_data = data.get_candles( data.pair, data.api_interval )[0:5]
+                            cripytos_data = data.get_candles( data.pair, data.api_interval )
                             lista_to_cosmos, dict_cripyto =  data.list_to_cosmos( cripytos_data, dict_cripyto )
                             to_save.extend( lista_to_cosmos )
                             print( f'len to_save antes = { len( to_save ) }' )
 
-                        save_to_file( to_save, 'a' )
-                        to_save.clear()
+                            save_to_file( to_save, data.pair, data.api_interval, 'a' )
+                            to_save.clear()
                 
                     else:
-                        to_cosmos = list_to_save()
-                        print( f'len to_save before save in comos = { len( to_save ) }' )
-                        save_to_cosmos( to_cosmos )
+                        for pair in usdt_pairs:
+                            print( pair, data.api_interval )
+                            to_cosmos = list_to_save( pair, data.api_interval )
+                            print( f'len to_save before save in comos = { len( to_cosmos ) }' )
+                            save_to_cosmos( to_cosmos, pair, data.api_interval )
                         
         else:
 
