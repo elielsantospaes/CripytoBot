@@ -3,10 +3,8 @@ import requests
 import json
 import time
 import asyncio
-import os
-import numpy as np
 
-# from flask import Flask
+from flask import Flask
 from datetime import datetime
 from azure.cosmos.aio import CosmosClient as cosmos_client
 from azure.cosmos import PartitionKey, exceptions
@@ -252,8 +250,7 @@ dict_time = {
 
 times = { '1m': 60, '2h': 7200 , '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
 # times = { '1m': 60, '2h': 90 , '1d': 120, '1w': 150 }
-# intervals = { '1m': None, '2h': None, '1d': None, '1w': None }
-intervals = { '1m': 60, '2h': 7200 , '1d': 24 * 3600, '1w': 7 * 24 * 3600 }
+intervals = { '1m': None, '2h': None, '1d': None, '1w': None }
 
 usdt_pairs = [ 'BTCUSDT',  'ETHUSDT',  'XMRUSDT',  'XRPUSDT',   'BUSDUSDT',
                'DOGEUSDT', 'LTCUSDT',  'ETCUSDT',  'ZECUSDT',   'MANAUSDT' ]
@@ -315,17 +312,7 @@ def save_to_cosmos( to_save, pair, interval ):
 def get_cripyto_data( usdt_pairs, dict_time, times, intervals ):
 
     to_save = []
-    # dict_cripyto = {}
-    dict_cripyto = { 
-                    'BTCUSDT1m':1,  'ETHUSDT1m':1,  'XMRUSDT1m':1,  'XRPUSDT1m':1,   'BUSDUSDT1m':1,
-                    'DOGEUSDT1m':1, 'LTCUSDT1m':1,  'ETCUSDT1m':1,  'ZECUSDT1m':1,   'MANAUSDT1m':1, 
-                    'BTCUSDT2h':1,  'ETHUSDT2h':1,  'XMRUSDT2h':1,  'XRPUSDT2h':1,   'BUSDUSDT2h':1,
-                    'DOGEUSDT2h':1, 'LTCUSDT2h':1,  'ETCUSDT2h':1,  'ZECUSDT2h':1,   'MANAUSDT2h':1, 
-                    'BTCUSDT1d':1,  'ETHUSDT1d':1,  'XMRUSDT1d':1,  'XRPUSDT1d':1,   'BUSDUSDT1d':1,
-                    'DOGEUSDT1d':1, 'LTCUSDT1d':1,  'ETCUSDT1d':1,  'ZECUSDT1d':1,   'MANAUSDT1d':1, 
-                    'BTCUSDT1w':1,  'ETHUSDT1w':1,  'XMRUSDT1w':1,  'XRPUSDT1w':1,   'BUSDUSDT1w':1,
-                    'DOGEUSDT1w':1, 'LTCUSDT1w':1,  'ETCUSDT1w':1,  'ZECUSDT1w':1,   'MANAUSDT1w':1 
-                    }
+    dict_cripyto = {}
 
     # Create or get the Databse and Container
     while True:
@@ -337,13 +324,13 @@ def get_cripyto_data( usdt_pairs, dict_time, times, intervals ):
                 if intervals[ api_interval ] == None:
                     for pair in usdt_pairs:
                         data = GetCripytosData( pair, api_interval )
+                        print( f'Getting data for {data.pair} evrey {data.api_interval} seconds' )
                         cripytos_data = data.get_candles( data.pair, data.api_interval )
                         lista_to_cosmos, dict_cripyto =  data.list_to_cosmos( cripytos_data, dict_cripyto )
                         to_save.extend( lista_to_cosmos )
 
                         save_to_file( to_save, data.pair, data.api_interval, 'a' )
                         to_save.clear()    
-                        time.sleep( 10 )
 
                     
                     intervals[ api_interval ] = times[ api_interval ]
@@ -369,14 +356,11 @@ def get_cripyto_data( usdt_pairs, dict_time, times, intervals ):
                             to_save.clear()
                 
                     else:
-                        files_list = os.listdir( 'data/' )
-                        file_name = files_list[ np.random.randint( 0, len( files_list ) ) ]
-                        print( f'File send to save: {file_name}')
-                        pair = file_name[ : len( file_name ) - 6 ]
-                        interval = file_name[ len( file_name ) - 6 : len( file_name ) - 4 ]
-                        to_cosmos = list_to_save( pair, interval )
-                        print( f'len to_save before save in comos = { len( to_cosmos ) }' )
-                        save_to_cosmos( to_cosmos, pair, interval )
+                        for pair in usdt_pairs:
+                            print( pair, data.api_interval )
+                            to_cosmos = list_to_save( pair, data.api_interval )
+                            print( f'len to_save before save in comos = { len( to_cosmos ) }' )
+                            save_to_cosmos( to_cosmos, pair, data.api_interval )
                         
         else:
 
@@ -385,18 +369,18 @@ def get_cripyto_data( usdt_pairs, dict_time, times, intervals ):
             time.sleep( 10 )
 
 
-# app = Flask( __name__ )
+app = Flask( __name__ )
 
-# @app.route( '/' )
-# def get_data():
-#     get_cripyto_data( usdt_pairs, dict_time, times, intervals )
+@app.route( '/' )
+def get_data():
+    get_cripyto_data( usdt_pairs, dict_time, times, intervals )
             
 
 
 
 if __name__ == '__main__':
-    # app.run( debug = True, port = 5000) 
-    get_cripyto_data( usdt_pairs, dict_time, times, intervals )
+    app.run( debug = True, port = 5000) 
+    # get_cripyto_data( usdt_pairs, dict_time, times, intervals )
    
 
    
